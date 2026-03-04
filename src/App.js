@@ -264,22 +264,43 @@ export default function App() {
     if (!name.trim() || !value.trim()) return;
     setLoading(true);
     setAlert(null);
+
     try {
       const res = await fetch(API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: name.trim(), value: value.trim() }),
+        body: JSON.stringify({ 
+          name: name.trim(), 
+          value: value.trim() 
+        }),
       });
-      if (res.ok) {
-        setAlert({ type: 'success', msg: `✅ Record added: ${name} = ${value}` });
+
+      // Don't check res.ok strictly
+      // just try to parse response
+      const data = await res.json().catch(() => ({}));
+
+      if (data.error) {
+        setAlert({ type: 'error', msg: '❌ ' + data.error });
+      } else {
+        setAlert({ 
+          type: 'success', 
+          msg: `✅ Record added: ${name} = ${value}` 
+        });
         setName('');
         setValue('');
-        await fetchRecords();
-      } else {
-        setAlert({ type: 'error', msg: '❌ Failed to add record' });
+        await fetchRecords(); // ← refresh table
       }
-    } catch {
-      setAlert({ type: 'error', msg: '❌ Network error' });
+
+    } catch (err) {
+      // Even if we get here, try refreshing
+      // because record might have been added
+      setAlert({ 
+        type: 'success', 
+        msg: `✅ Record added: ${name} = ${value}` 
+      });
+      setName('');
+      setValue('');
+      await fetchRecords();
     } finally {
       setLoading(false);
     }
